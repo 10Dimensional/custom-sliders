@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset=utf-8>
+        <title>Carousel Plugin</title>
+        
+        <style>
+            #slider-nav {
+                display: none; /*Default*/
+                margin-top: 1em;
+            }
+            
+            #slider-nav button {
+                padding: 1em;
+                margin-right: 1em;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+            
+            .slider {
+                width: inherit; /*600px*/
+                height: 300px;
+                overflow: scroll;
+            }
+            
+            .slider ul {
+                width: 10000px;
+                list-style: none;
+            }
+            
+            .slider ul li {
+                float: left;
+            }
+            
+            .slider ul li img {
+                float: left;
+                height: 100%;
+                width: auto;
+            }
+            
+            .container {
+                width: 600px;
+                overflow: hidden;
+                margin: 0 auto;
+            }
+
+        </style>
+    </head>
+    <body>
+        <!--<h1>My Tweet</h1>
+        <div class="tweets"></div>-->
+       
+    <section class="carousel">
+        <div class="slider">
+            <ul class="slider-list">
+                <li><img src="https://placehold.it/350x150"></li>
+                <li><img src="https://placehold.it/350x150"></li>
+                <li><img src="https://placehold.it/350x150"></li>
+                <li><img src="https://placehold.it/350x150"></li>
+                <li><img src="https://placehold.it/350x150"></li>
+                <li><img src="https://placehold.it/350x150"></li>
+                <li><img src="https://placehold.it/350x150"></li>
+            </ul>
+        </div>
+        
+        <div id="slider-nav">
+        	<button data-dir="prev">Previous</button>
+        	<button data-dir="next">Next</button>
+        </div>
+    </section> 
+        
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+        <script src="carousel.js"></script>
+        
+        <script>
+            $('.carousel').customCarousel();
+        </script>
+    </body>
+</html>

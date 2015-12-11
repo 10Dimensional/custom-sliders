@@ -1,0 +1,7 @@
+Half of container = containerWidth/2
+
+Center img inside of container:
+
+Images are diff widths in carousel
+
+margin-left
