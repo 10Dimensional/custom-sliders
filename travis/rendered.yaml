@@ -1,0 +1,181 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: travis-ci-enterprise
+---
+apiVersion: v1
+data:
+  GCLOUD_CLEANUP_ENTITIES: instances
+  GCLOUD_CLEANUP_INSTANCE_FILTERS: name eq ^travis-job-.*
+  GCLOUD_CLEANUP_INSTANCE_MAX_AGE: 3h
+  GCLOUD_CLEANUP_LOOP_SLEEP: 1m
+  GCLOUD_PROJECT: null
+kind: ConfigMap
+metadata:
+  name: travis-ci-vm-cleanup
+  namespace: travis-ci-enterprise
+---
+apiVersion: v1
+data:
+  GOTRACEBACK: all
+  TRAVIS_WORKER_AMQP_HEARTBEAT: 60s
+  TRAVIS_WORKER_BUILD_API_INSECURE_SKIP_VERIFY: "false"
+  TRAVIS_WORKER_GCE_BOOT_POLL_SLEEP: 7s
+  TRAVIS_WORKER_GCE_BOOT_PRE_POLL_SLEEP: 5s
+  TRAVIS_WORKER_GCE_DISK_SIZE: "70"
+  TRAVIS_WORKER_GCE_IMAGE_DEFAULT: travis-ci-garnet-trusty.%2B
+  TRAVIS_WORKER_GCE_IMAGE_PROJECT_ID: eco-emissary-99515
+  TRAVIS_WORKER_GCE_MACHINE_TYPE: n1-standard-2
+  TRAVIS_WORKER_GCE_PROJECT_ID: null
+  TRAVIS_WORKER_GCE_PUBLIC_IP_CONNECT: "false"
+  TRAVIS_WORKER_GCE_SKIP_STOP_POLL: "true"
+  TRAVIS_WORKER_GCE_UPLOAD_RETRIES: "300"
+  TRAVIS_WORKER_INFRA: gce
+  TRAVIS_WORKER_POOL_SIZE: "15"
+  TRAVIS_WORKER_PROVIDER_NAME: gce
+  TRAVIS_WORKER_QUEUE_NAME: builds.linux
+  TRAVIS_WORKER_SCRIPT_UPLOAD_TIMEOUT: 7m
+  TRAVIS_WORKER_STARTUP_TIMEOUT: 8m
+kind: ConfigMap
+metadata:
+  name: travis-ci-worker
+  namespace: travis-ci-enterprise
+---
+apiVersion: v1
+data:
+  CLEANUP_ACCOUNT_JSON: null
+kind: Secret
+metadata:
+  name: travis-ci-vm-cleanup
+  namespace: travis-ci-enterprise
+---
+apiVersion: v1
+data:
+  TRAVIS_WORKER_AMQP_URI: YW1xcDovL3RyYXZpczoqc3VwZXJzZWN1cmV0b2tlbipAdHJhdmlzLWNpLmVudGVycHJpc2UuY29tL3RyYXZpcw==
+  TRAVIS_WORKER_BUILD_API_URI: aHR0cHM6Ly90cmF2aXMtY2kuZW50ZXJwcmlzZS5jb20vX19idWlsZF9fL3NjcmlwdA==
+  WORKER_ACCOUNT_JSON: null
+kind: Secret
+metadata:
+  name: travis-ci-worker
+  namespace: travis-ci-enterprise
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: travis-ci
+    component: support-bundle
+  name: support-bundle
+  namespace: travis-ci-enterprise
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      tier: support-bundle
+  template:
+    metadata:
+      labels:
+        tier: support-bundle
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -c
+        - sleep infinity
+        image: replicated/support-bundle
+        imagePullPolicy: Always
+        name: support-bundle
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: travis-ci
+    component: cleanup
+  name: travis-ci-vm-cleanup
+  namespace: travis-ci-enterprise
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: travis-ci
+      component: cleanup
+  template:
+    metadata:
+      labels:
+        app: travis-ci
+        component: cleanup
+    spec:
+      containers:
+      - env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /secrets/account.json
+        envFrom:
+        - configMapRef:
+            name: travis-ci-vm-cleanup
+        image: travisci/gcloud-cleanup:43142c4
+        name: cleanup
+        volumeMounts:
+        - mountPath: /secrets
+          name: account-json
+      volumes:
+      - name: account-json
+        secret:
+          items:
+          - key: CLEANUP_ACCOUNT_JSON
+            path: account.json
+          secretName: travis-ci-vm-cleanup
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: travis-ci
+    component: worker
+  name: travis-ci-worker
+  namespace: travis-ci-enterprise
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: travis-ci
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: travis-ci
+        component: worker
+    spec:
+      containers:
+      - env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /secrets/account.json
+        - name: TRAVIS_WORKER_AMQP_URI
+          valueFrom:
+            secretKeyRef:
+              key: TRAVIS_WORKER_AMQP_URI
+              name: travis-ci-worker
+        - name: TRAVIS_WORKER_BUILD_API_URI
+          valueFrom:
+            secretKeyRef:
+              key: TRAVIS_WORKER_BUILD_API_URI
+              name: travis-ci-worker
+        envFrom:
+        - configMapRef:
+            name: travis-ci-worker
+        image: travisci/worker:v4.5.2
+        name: worker
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1024Mi
+        volumeMounts:
+        - mountPath: /secrets
+          name: account-json
+      volumes:
+      - name: account-json
+        secret:
+          items:
+          - key: WORKER_ACCOUNT_JSON
+            path: account.json
+          secretName: travis-ci-worker
