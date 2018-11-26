@@ -141,7 +141,7 @@ kind: Pod
 metadata:
   annotations:
     helm.sh/hook: test-success
-  name: bookstack-mariadb-test-to7bp
+  name: bookstack-mariadb-test-9wogq
 spec:
   containers:
   - command:
@@ -186,8 +186,8 @@ spec:
 ---
 apiVersion: v1
 data:
-  mariadb-password: OHpKSmtSeEk4cQ==
-  mariadb-root-password: TDNkVUg0OWZGcg==
+  mariadb-password: cFo2YnA5bk1ydQ==
+  mariadb-root-password: RkFlR1VGbkR5NA==
 kind: Secret
 metadata:
   labels:
@@ -244,7 +244,7 @@ kind: Deployment
 metadata:
   labels:
     app: bookstack
-    chart: bookstack-0.1.2
+    chart: bookstack-0.1.4
     heritage: Tiller
     release: bookstack
   name: bookstack
