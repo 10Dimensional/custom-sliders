@@ -1,0 +1,403 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: bookstack
+    chart: bookstack-0.1.2
+    heritage: Tiller
+    release: bookstack
+  name: bookstack
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: bookstack
+    chart: bookstack-0.1.2
+    heritage: Tiller
+    release: bookstack
+  name: bookstack
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app: bookstack
+    chart: bookstack-0.1.2
+    heritage: Tiller
+    release: bookstack
+  name: bookstack
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: bookstack
+subjects:
+- kind: ServiceAccount
+  name: bookstack
+---
+apiVersion: v1
+data:
+  README.md: |-
+    You can copy here your custom .sh, .sql or .sql.gz file so they are executed during the first boot of the image.
+
+    More info in the [bitnami-docker-mariadb](https://github.com/bitnami/bitnami-docker-mariadb#initializing-a-new-instance) repository.
+kind: ConfigMap
+metadata:
+  labels:
+    app: mariadb
+    chart: mariadb-4.4.2
+    component: master
+    heritage: Tiller
+    release: bookstack
+  name: bookstack-mariadb-init-scripts
+---
+apiVersion: v1
+data:
+  run.sh: |-
+    @test "Testing MariaDB is accessible" {
+      mysql -h bookstack-mariadb -uroot -p$MARIADB_ROOT_PASSWORD -e 'show databases;'
+    }
+kind: ConfigMap
+metadata:
+  name: bookstack-mariadb-tests
+---
+apiVersion: v1
+data:
+  my.cnf: |-
+    [mysqld]
+    skip-name-resolve
+    explicit_defaults_for_timestamp
+    basedir=/opt/bitnami/mariadb
+    port=3306
+    socket=/opt/bitnami/mariadb/tmp/mysql.sock
+    tmpdir=/opt/bitnami/mariadb/tmp
+    max_allowed_packet=16M
+    bind-address=0.0.0.0
+    pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
+    log-error=/opt/bitnami/mariadb/logs/mysqld.log
+    character-set-server=UTF8
+    collation-server=utf8_general_ci
+
+    [client]
+    port=3306
+    socket=/opt/bitnami/mariadb/tmp/mysql.sock
+    default-character-set=UTF8
+
+    [manager]
+    port=3306
+    socket=/opt/bitnami/mariadb/tmp/mysql.sock
+    pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
+kind: ConfigMap
+metadata:
+  labels:
+    app: mariadb
+    chart: mariadb-4.4.2
+    component: master
+    heritage: Tiller
+    release: bookstack
+  name: bookstack-mariadb
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: bookstack
+    chart: bookstack-0.1.2
+    heritage: Tiller
+    release: bookstack
+  name: bookstack-storage
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: bookstack
+    chart: bookstack-0.1.2
+    heritage: Tiller
+    release: bookstack
+  name: bookstack-uploads
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    helm.sh/hook: test-success
+  name: bookstack-mariadb-test-uyu1i
+spec:
+  containers:
+  - command:
+    - /tools/bats/bats
+    - -t
+    - /tests/run.sh
+    env:
+    - name: MARIADB_ROOT_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          key: mariadb-root-password
+          name: bookstack-mariadb
+    image: docker.io/bitnami/mariadb:10.1.36-debian-9
+    imagePullPolicy: IfNotPresent
+    name: mariadb-test
+    volumeMounts:
+    - mountPath: /tests
+      name: tests
+      readOnly: true
+    - mountPath: /tools
+      name: tools
+  initContainers:
+  - command:
+    - bash
+    - -c
+    - |
+      set -ex
+      # copy bats to tools dir
+      cp -R /usr/local/libexec/ /tools/bats/
+    image: dduportal/bats:0.4.0
+    name: test-framework
+    volumeMounts:
+    - mountPath: /tools
+      name: tools
+  restartPolicy: Never
+  volumes:
+  - configMap:
+      name: bookstack-mariadb-tests
+    name: tests
+  - emptyDir: {}
+    name: tools
+---
+apiVersion: v1
+data:
+  mariadb-password: T3djREhzUzFXWg==
+  mariadb-root-password: NmRGb21zSlZOeQ==
+kind: Secret
+metadata:
+  labels:
+    app: mariadb
+    chart: mariadb-4.4.2
+    heritage: Tiller
+    release: bookstack
+  name: bookstack-mariadb
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: mariadb
+    chart: mariadb-4.4.2
+    component: master
+    heritage: Tiller
+    release: bookstack
+  name: bookstack-mariadb
+spec:
+  ports:
+  - name: mysql
+    port: 3306
+    targetPort: mysql
+  selector:
+    app: mariadb
+    component: master
+    release: bookstack
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: bookstack
+    chart: bookstack-0.1.2
+    heritage: Tiller
+    release: bookstack
+  name: bookstack
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app: bookstack
+    release: bookstack
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: bookstack
+    chart: bookstack-0.1.2
+    heritage: Tiller
+    release: bookstack
+  name: bookstack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookstack
+      release: bookstack
+  template:
+    metadata:
+      labels:
+        app: bookstack
+        release: bookstack
+    spec:
+      containers:
+      - env:
+        - name: DB_HOST
+          value: bookstack-mariadb
+        - name: DB_DATABASE
+          value: bookstack
+        - name: DB_USERNAME
+          value: bookstack
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: mariadb-password
+              name: bookstack-mariadb
+        image: solidnerd/bookstack:0.24.2
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+        name: bookstack
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+        resources: {}
+        volumeMounts:
+        - mountPath: /var/www/bookstack/public/uploads
+          name: uploads
+        - mountPath: /var/www/bookstack/public/storage
+          name: storage
+      serviceAccountName: bookstack
+      volumes:
+      - name: uploads
+        persistentVolumeClaim:
+          claimName: bookstack-uploads
+      - name: storage
+        persistentVolumeClaim:
+          claimName: bookstack-storage
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  labels:
+    app: mariadb
+    chart: mariadb-4.4.2
+    component: master
+    heritage: Tiller
+    release: bookstack
+  name: bookstack-mariadb
+spec:
+  replicas: 1
+  serviceName: bookstack-mariadb
+  template:
+    metadata:
+      labels:
+        app: mariadb
+        chart: mariadb-4.4.2
+        component: master
+        release: bookstack
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: mariadb
+                  release: bookstack
+              topologyKey: kubernetes.io/hostname
+            weight: 1
+      containers:
+      - env:
+        - name: MARIADB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: mariadb-root-password
+              name: bookstack-mariadb
+        - name: MARIADB_USER
+          value: bookstack
+        - name: MARIADB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: mariadb-password
+              name: bookstack-mariadb
+        - name: MARIADB_DATABASE
+          value: bookstack
+        image: docker.io/bitnami/mariadb:10.1.36-debian-9
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - exec mysqladmin status -uroot -p$MARIADB_ROOT_PASSWORD
+          failureThreshold: 3
+          initialDelaySeconds: 120
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: mariadb
+        ports:
+        - containerPort: 3306
+          name: mysql
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - exec mysqladmin status -uroot -p$MARIADB_ROOT_PASSWORD
+          failureThreshold: 3
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources: {}
+        volumeMounts:
+        - mountPath: /bitnami/mariadb
+          name: data
+        - mountPath: /docker-entrypoint-initdb.d
+          name: custom-init-scripts
+        - mountPath: /opt/bitnami/mariadb/conf/my.cnf
+          name: config
+          subPath: my.cnf
+      securityContext:
+        fsGroup: 1001
+        runAsUser: 1001
+      volumes:
+      - configMap:
+          name: bookstack-mariadb
+        name: config
+      - configMap:
+          name: bookstack-mariadb-init-scripts
+        name: custom-init-scripts
+      - emptyDir: {}
+        name: data
+  updateStrategy:
+    type: RollingUpdate
