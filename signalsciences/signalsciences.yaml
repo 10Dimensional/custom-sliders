@@ -5,8 +5,6 @@ kind: Secret
 metadata:
   labels:
     app: signalsciences-signalsciences
-    chart: signalsciences-0.0.1
-    heritage: Tiller
     release: signalsciences
   name: signalsciences-signalsciences-accesskeyid
 type: Opaque
@@ -18,8 +16,6 @@ kind: Secret
 metadata:
   labels:
     app: signalsciences-signalsciences
-    chart: signalsciences-0.0.1
-    heritage: Tiller
     release: signalsciences
   name: signalsciences-signalsciences-secretaccesskey
 type: Opaque
