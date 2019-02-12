@@ -95,85 +95,9 @@ metadata:
   name: bookstack-mariadb
 ---
 apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  labels:
-    app: bookstack
-    release: bookstack
-  name: bookstack-storage
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 8Gi
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  labels:
-    app: bookstack
-    release: bookstack
-  name: bookstack-uploads
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 8Gi
----
-apiVersion: v1
-kind: Pod
-metadata:
-  annotations:
-    helm.sh/hook: test-success
-  name: bookstack-mariadb-test-v1s2a
-spec:
-  containers:
-  - command:
-    - /tools/bats/bats
-    - -t
-    - /tests/run.sh
-    env:
-    - name: MARIADB_ROOT_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          key: mariadb-root-password
-          name: bookstack-mariadb
-    image: docker.io/bitnami/mariadb:10.1.36-debian-9
-    imagePullPolicy: IfNotPresent
-    name: mariadb-test
-    volumeMounts:
-    - mountPath: /tests
-      name: tests
-      readOnly: true
-    - mountPath: /tools
-      name: tools
-  initContainers:
-  - command:
-    - bash
-    - -c
-    - |
-      set -ex
-      # copy bats to tools dir
-      cp -R /usr/local/libexec/ /tools/bats/
-    image: dduportal/bats:0.4.0
-    name: test-framework
-    volumeMounts:
-    - mountPath: /tools
-      name: tools
-  restartPolicy: Never
-  volumes:
-  - configMap:
-      name: bookstack-mariadb-tests
-    name: tests
-  - emptyDir: {}
-    name: tools
----
-apiVersion: v1
 data:
-  mariadb-password: bzBVS2Ztem5CUg==
-  mariadb-root-password: MHZBUG5RWnJScQ==
+  mariadb-password: MWxiZTROVWRsZg==
+  mariadb-root-password: dVdvSm1WQTF5dw==
 kind: Secret
 metadata:
   labels:
@@ -379,3 +303,79 @@ spec:
         name: data
   updateStrategy:
     type: RollingUpdate
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: bookstack
+    release: bookstack
+  name: bookstack-storage
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: bookstack
+    release: bookstack
+  name: bookstack-uploads
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    helm.sh/hook: test-success
+  name: bookstack-mariadb-test-meuw9
+spec:
+  containers:
+  - command:
+    - /tools/bats/bats
+    - -t
+    - /tests/run.sh
+    env:
+    - name: MARIADB_ROOT_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          key: mariadb-root-password
+          name: bookstack-mariadb
+    image: docker.io/bitnami/mariadb:10.1.36-debian-9
+    imagePullPolicy: IfNotPresent
+    name: mariadb-test
+    volumeMounts:
+    - mountPath: /tests
+      name: tests
+      readOnly: true
+    - mountPath: /tools
+      name: tools
+  initContainers:
+  - command:
+    - bash
+    - -c
+    - |
+      set -ex
+      # copy bats to tools dir
+      cp -R /usr/local/libexec/ /tools/bats/
+    image: dduportal/bats:0.4.0
+    name: test-framework
+    volumeMounts:
+    - mountPath: /tools
+      name: tools
+  restartPolicy: Never
+  volumes:
+  - configMap:
+      name: bookstack-mariadb-tests
+    name: tests
+  - emptyDir: {}
+    name: tools
