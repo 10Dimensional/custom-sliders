@@ -96,8 +96,8 @@ metadata:
 ---
 apiVersion: v1
 data:
-  mariadb-password: MWxiZTROVWRsZg==
-  mariadb-root-password: dVdvSm1WQTF5dw==
+  mariadb-password: R0RkZmdBbHp6Mw==
+  mariadb-root-password: ckh2Rkc0OWswVA==
 kind: Secret
 metadata:
   labels:
@@ -337,7 +337,7 @@ kind: Pod
 metadata:
   annotations:
     helm.sh/hook: test-success
-  name: bookstack-mariadb-test-meuw9
+  name: bookstack-mariadb-test-nzw3g
 spec:
   containers:
   - command:
