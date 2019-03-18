@@ -96,8 +96,8 @@ metadata:
 ---
 apiVersion: v1
 data:
-  mariadb-password: R0RkZmdBbHp6Mw==
-  mariadb-root-password: ckh2Rkc0OWswVA==
+  mariadb-password: TGlVN2ZvQVg2Uw==
+  mariadb-root-password: VjViNE9iaFAyYQ==
 kind: Secret
 metadata:
   labels:
@@ -177,7 +177,7 @@ spec:
             secretKeyRef:
               key: mariadb-password
               name: bookstack-mariadb
-        image: solidnerd/bookstack:0.24.3
+        image: solidnerd/bookstack:0.25.2
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -337,7 +337,7 @@ kind: Pod
 metadata:
   annotations:
     helm.sh/hook: test-success
-  name: bookstack-mariadb-test-nzw3g
+  name: bookstack-mariadb-test-g0ohu
 spec:
   containers:
   - command:
